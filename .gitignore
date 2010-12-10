@@ -1,0 +1,5 @@
+/AnyEvent-OWNet-*
+/.build
+*~
+/.tdldb.bak
+/temp

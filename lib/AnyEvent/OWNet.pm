@@ -84,9 +84,7 @@ sub msg {
   my $sg = $req->{sg} // OWNET_NET | OWNET_BUS_RET | OWNET_ALIAS | OWNET_PERSISTENT;
   my $size = $req->{size} // OWNET_DEFAULT_DATA_SIZE;
   my $offset = $req->{offset} // 0;
-  return
-    pack 'N6a*',
-      $version, $payload, $type, $sg, $size, $offset, $data, $payload;
+  return pack 'N6a*', $version, $payload, $type, $sg, $size, $offset, $data;
 }
 
 =method C<read($path, $sub)>

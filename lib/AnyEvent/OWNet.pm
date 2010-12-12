@@ -310,6 +310,27 @@ sub connect {
   return $cv;
 }
 
+sub devices {
+  my ($self, $cb, $offset, $cv) = @_;
+  $offset ||= '/';
+  $cv ||= AnyEvent->condvar;
+  print STDERR "devices: $offset\n" if DEBUG;
+  $cv->begin;
+  $self->getslash($offset, sub {
+                    my $res = shift;
+                    foreach my $d (@{$res->{data}||[]}) {
+                      if ($d =~ m!^.*/[0-9a-f]{2}\.[0-9a-f]{12}/$!i) {
+                        $cb->($d, $cv);
+                        $self->devices($cb, $d, $cv);
+                      } elsif ($d =~ m!/(?:main|aux)/$!) {
+                        $self->devices($cb, $d, $cv);
+                      }
+                    }
+                    $cv->end;
+                  });
+  $cv;
+}
+
 sub anyevent_read_type {
   my ($handle, $cb, $command) = @_;
 

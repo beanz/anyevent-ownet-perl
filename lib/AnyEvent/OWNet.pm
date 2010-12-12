@@ -320,17 +320,18 @@ sub anyevent_read_type {
 
   REDO:
     return unless (defined $$rbuf);
-    my $len = length $$rbuf;
-    print STDERR "read_type has $len bytes\n" if DEBUG;
-    print STDERR "read_type has ", (unpack 'H*', $$rbuf), "\n" if DEBUG;
+    my $len;
 
     my %result;
     my $header;
     do {
+      $len = length $$rbuf;
+      print STDERR "read_type has $len bytes\n" if DEBUG;
+      print STDERR "read_type has ", (unpack 'H*', $$rbuf), "\n" if DEBUG;
       return unless ($len >= 24);
       @result{qw/version payload ret sg size offset/} = unpack 'N6', $$rbuf;
       $header = substr $$rbuf, 0, 24, '';
-      print STDERR "read_type header", (unpack 'H*', $header), "\n" if DEBUG;
+      print STDERR "read_type header ", (unpack 'H*', $header), "\n" if DEBUG;
       if ($result{'ret'} > $MAX_RETURN) {
         $cb->($handle, \%result);
         return 1;

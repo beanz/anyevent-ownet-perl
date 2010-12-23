@@ -318,7 +318,9 @@ sub devices {
   $cv->begin;
   $self->getslash($offset, sub {
                     my $res = shift;
-                    foreach my $d (@{$res->{data}||[]}) {
+                    my $data = $res->{data} || [];
+                    $data = [$data] unless (ref $data);
+                    foreach my $d (@$data) {
                       if ($d =~ m!^.*/[0-9a-f]{2}\.[0-9a-f]{12}/$!i) {
                         $cb->($d, $cv);
                         $self->devices($cb, $d, $cv);

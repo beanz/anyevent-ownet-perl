@@ -86,8 +86,10 @@ sub new {
   my ($pkg, %p) = @_;
   bless
     {
+     connect_queue => [],
      host => '127.0.0.1',
      port => 4304,
+     timeout => 5,
      %p,
     }, $pkg;
 }
@@ -218,6 +220,13 @@ sub all_cv {
 sub cleanup {
   my $self = shift;
   print STDERR "cleanup\n" if DEBUG;
+  $self->{all_cv}->croak(@_) if ($self->{all_cv});
+  while (@{$self->{connect_queue}}) {
+    my $queue = shift @{$self->{connect_queue}};
+    my($cv, @args) = @$queue;
+    $cv->croak(@_);
+  }
+  delete $self->{all_cv};
   delete $self->{cmd_cb};
   delete $self->{sock};
   $self->{on_error}->(@_) if $self->{on_error};
@@ -256,11 +265,16 @@ sub connect {
                                 $self->cleanup($_[2]);
                               }
                             },
-                            on_eof   => sub {
+                            on_eof => sub {
                               print STDERR "handle eof\n" if DEBUG;
                               $_[0]->destroy;
-                              $self->cleanup('connection closed');
+                              $self->cleanup('Connection closed');
                             },
+                            on_timeout => sub {
+                              print STDERR "handle timeout\n" if DEBUG;
+                              $_[0]->destroy;
+                              $self->cleanup('Socket timeout');
+                            }
                            );
     $self->{cmd_cb} = sub {
       $self->all_cv->begin;
@@ -277,6 +291,7 @@ sub connect {
       warn 'Sending: ', (unpack 'H*', $msg), "\n" if DEBUG;
 
       $hd->push_write($msg);
+      $hd->timeout($self->{timeout});
 
       $cv ||= AnyEvent->condvar;
 
@@ -317,7 +332,8 @@ sub connect {
       return $cv;
     };
 
-    for my $queue (@{$self->{connect_queue} || []}) {
+    while (@{$self->{connect_queue}}) {
+      my $queue = shift @{$self->{connect_queue}};
       my($cv, @args) = @$queue;
       $self->{cmd_cb}->(@args, $cv);
     }

@@ -13,6 +13,23 @@ package AnyEvent::OWNet;
   # Read temperature sensor
   $ow->read('/10.123456789012/temperature', sub { my ($value) = @_; ... });
 
+  # Read the temperatures of all devices that are found
+  my $cv;
+  $cv = $ow->devices(sub {
+                       my $dev = shift;
+                       print $dev, "\n";
+                       $cv->begin;
+                       $ow->get($dev.'temperature',
+                                sub {
+                                  my $res = shift;
+                                  $cv->end;
+                                  my $value = $res->{data};
+                                  return unless (defined $value);
+                                  print $dev, " = ", 0+$value, "\n";
+                                });
+                     });
+  $cv->recv;
+
 =head1 DESCRIPTION
 
 AnyEvent module for handling communication with an owfs 1-wire server
@@ -386,6 +403,12 @@ sub anyevent_read_type {
 }
 
 1;
+
+=head1 TODO
+
+The code assumes that the C<owserver> will supports persistence and
+does not check the flags to notice when it is not.  Also, the
+L<devices()> method assumes that C<getslash> method is supported.
 
 =head1 SEE ALSO
 

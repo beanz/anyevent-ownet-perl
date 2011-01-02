@@ -26,7 +26,7 @@ Common functions to make test scripts a bit easier to read.
 
 use base 'Exporter';
 use constant {
-  DEBUG => $ENV{DEVICE_RFXCOM_TEST_HELPERS_DEBUG}
+  DEBUG => $ENV{ANYEVENT_OWNET_TEST_HELPERS_DEBUG}
 };
 use AnyEvent;
 use AnyEvent::Socket;
@@ -124,11 +124,15 @@ sub test_server {
                                       die "server timeout\n";
                                     }
                                    );
-    my @actions = @{shift @connections || []}; # intentional copy
-    unless (@actions) {
+    unless (@connections) {
       die "Server received unexpected connection\n";
     }
+    my @actions = @{shift @connections}; # intentional copy
+    unless (@connections) {
+      undef $server;
+    }
     handle_connection($handle, \@actions);
+    undef $handle;
   }, sub {
     my ($fh, $host, $port) = @_;
     die "tcp_server setup failed: $!\n" unless ($fh);

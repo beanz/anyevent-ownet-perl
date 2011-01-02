@@ -96,7 +96,7 @@ my $ow = AnyEvent::OWNet->new(host => $host, port => $port);
 ok($ow, 'instantiate AnyEvent::OWNet object');
 
 my @d;
-$cv = $ow->devices(sub { push @d, $_[0]; }, '/');
+$cv = $ow->devices(sub { push @d, $_[0]; });
 
 my $res = $cv->recv;
 

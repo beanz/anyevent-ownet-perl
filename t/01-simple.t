@@ -11,6 +11,7 @@ $|=1;
 
 BEGIN {
   require Test::More;
+  $ENV{PERL_ANYEVENT_MODEL} = 'Perl' unless ($ENV{PERL_ANYEVENT_MODEL});
   eval { require AnyEvent; import AnyEvent;
          require AnyEvent::Socket; import AnyEvent::Socket };
   if ($@) {
@@ -182,18 +183,50 @@ my @connections =
               00 00 00 00 00 00 00 00',
     },
    ],
+
+   [
+    {
+     desc => q{read('/28.E06D9B000000/temperature')},
+     recv => '00 00 00 00 00 00 00 1D  00 00 00 02 00 00 01 0E
+              00 00 80 E8 00 00 00 00  2F 32 38 2E 45 30 36 44
+              39 42 30 30 30 30 30 30  2F 74 65 6D 70 65 72 61
+              74 75 72 65 00',
+     send => '00 00 00 00 00 00 00 0c  00 00 00 0c 00 00 01 0a
+              00 00 00 0c 00 00 00 00  20 20 20 20 20 20 32 33
+              2e 36 32 35',
+    },
+
+    {
+     desc => q{write('/05.F7692C000000/PIO', 0)},
+     recv => '00 00 00 00 00 00 00 16  00 00 00 03 00 00 01 0E
+              00 00 00 01 00 00 00 00  2F 30 35 2E 46 37 36 39
+              32 43 30 30 30 30 30 30  2F 50 49 4F 00 30',
+     send => '00 00 00 00 00 00 00 00  00 00 00 00 00 00 01 0a
+              00 00 00 01 00 00 00 00',
+    },
+   ],
+
+   [
+    {
+     desc => 'sleep',
+     sleep => 0.3,
+    },
+   ],
+
+   [
+    # just close
+   ],
   );
 
 my $cv = AnyEvent->condvar;
-my $server;
 
-eval { $server = test_server($cv, @connections) };
+eval { test_server($cv, @connections) };
 plan skip_all => "Failed to create dummy server: $@" if ($@);
 
 my ($host,$port) = @{$cv->recv};
 my $addr = join ':', $host, $port;
 
-plan tests => 27;
+plan tests => 38;
 
 use_ok('AnyEvent::OWNet');
 
@@ -377,3 +410,65 @@ is_deeply($res,
            offset => 0,
            data => [qw{/10.A0F7B1000800 /10.6CA8E4000800 /10.2D3ABC000800}],
           }, q{... directory listing});
+
+undef $ow;
+
+$ow = AnyEvent::OWNet->new(host => $host, port => $port);
+
+# make two requests while connect is pending
+my ($cbres, $cbres2);
+$cv = $ow->read('/28.E06D9B000000/temperature', sub { $cbres = shift });
+my $cv2 = $ow->write('/05.F7692C000000/PIO', 0, sub { $cbres2 = shift });
+
+$res = $cv->recv;
+
+is_deeply($res,
+          {
+           version => 0,
+           ret => 12,
+           sg => 0x0000010a,
+           payload => 12,
+           size => 12,
+           offset => 0,
+           data => '      23.625',
+          }, q{queued read});
+is($res, $cbres, '... callback and condvar results are equal');
+is_deeply($res, $cbres, '... and (deeply) equal');
+
+my $res2 = $cv2->recv;
+
+is_deeply($res2,
+          {
+           version => 0,
+           ret => 0,
+           sg => 0x0000010a,
+           payload => 0,
+           size => 1,
+           offset => 0,
+           data => '',
+          }, q{queued write});
+is($res2, $cbres2, '... callback and condvar results are equal');
+is_deeply($res2, $cbres2, '... and (deeply) equal');
+
+
+SKIP: {
+  skip 'EV traps die', 3 if ($ENV{PERL_ANYEVENT_MODEL} eq 'EV');
+  $ow = AnyEvent::OWNet->new(host => $host, port => $port, timeout => 0.1,
+                             on_error => sub {die @_});
+
+  is(test_error(sub { my $cv = $ow->dir('/'); $cv->recv; }),
+     q{Socket timeout}, 'socket timeout');
+
+  $ow = AnyEvent::OWNet->new(host => $host, port => $port,
+                             on_error => sub {die @_});
+
+  is(test_error(sub { my $cv = $ow->dir('/');
+                      $ow->dir('/settings'); $cv->recv; }),
+     q{Broken pipe}, 'closed connection on write');
+
+  $ow = AnyEvent::OWNet->new(host => $host, port => $port);
+
+  is(test_error(sub { my $cv = $ow->dir('/'); $cv->recv }),
+     q{Can't connect owserver: Connection refused},
+     'connection failure');
+}

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2010 by Mark Hindess
+# Copyright (C) 2011 by Mark Hindess
 
 use strict;
 use constant { DEBUG => $ENV{ANYEVENT_OWNET_TEST_DEBUG} };

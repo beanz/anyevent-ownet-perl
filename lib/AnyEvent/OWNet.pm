@@ -6,12 +6,14 @@ package AnyEvent::OWNet;
 
 =head1 SYNOPSIS
 
+  # IMPORTANT: the API is subject to change
+
   my $ow = AnyEvent::OWNet->new(host => '127.0.0.1',
                                 port => 4304,
                                 on_error => sub { warn @_ });
 
   # Read temperature sensor
-  $ow->read('/10.123456789012/temperature', sub { my ($value) = @_; ... });
+  $ow->read('/10.123456789012/temperature', sub { my ($res) = @_; ... });
 
   # Read the temperatures of all devices that are found
   my $cv;
@@ -421,6 +423,8 @@ sub anyevent_read_type {
 1;
 
 =head1 TODO
+
+The result hash will be replaced by a module with simple API.
 
 The code assumes that the C<owserver> will supports persistence and
 does not check the flags to notice when it is not.  Also, the

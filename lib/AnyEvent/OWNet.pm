@@ -84,6 +84,31 @@ use constant {
   OWNET_DEFAULT_DATA_SIZE => 0x80e8,
 };
 
+=method C<new( %parameter_hash )>
+
+Constructs a new L<AnyEvent::OWNet> object.  The parameter hash can contain
+values for the following keys:
+
+=over
+
+=item C<host>
+
+The host IP of the running C<owserver> daemon.  Default is the IPv4
+loopback address, C<127.0.0.1>.
+
+=item C<port>
+
+The TCP port of the running C<owserver> daemon.  Default is C<4304>.
+
+=item C<timeout>
+
+The timeout in seconds to wait for responses from the server.  Default
+is 5 seconds.
+
+=back
+
+=cut
+
 sub new {
   my ($pkg, %p) = @_;
   bless
@@ -96,7 +121,7 @@ sub new {
     }, $pkg;
 }
 
-sub msg {
+sub _msg {
   my ($self, $req) = @_;
   my $version = $req->{version} // 0;
   my $data = $req->{data} // '';
@@ -210,6 +235,15 @@ sub _run_cmd {
 
 sub DESTROY { }
 
+=method C<all_cv( [ $condvar ] )>
+
+This method returns the L<AnyEvent> condvar that is used to track all
+outstanding operations.  It can also be used to set the initial value
+but this is only sensible when no operations are currently outstanding
+and is not normally necessary.
+
+=cut
+
 sub all_cv {
   my $self = shift;
   $self->{all_cv} = shift if @_;
@@ -218,6 +252,13 @@ sub all_cv {
   }
   $self->{all_cv};
 }
+
+=method C<cleanup( @error )>
+
+This method is called on error or when the closing the connection to
+free up resources and notify any receivers of errors.
+
+=cut
 
 sub cleanup {
   my $self = shift;
@@ -233,6 +274,13 @@ sub cleanup {
   delete $self->{sock};
   $self->{on_error}->(@_) if $self->{on_error};
 }
+
+=method C<connect( [ $command, $callback|$condvar ] )>
+
+This method connects to the C<owserver> daemon.  It is called automatically
+when the first command is attempted.
+
+=cut
 
 sub connect {
   my $self = shift;
@@ -288,7 +336,7 @@ sub connect {
         $cb = pop if ref $_[-1] eq 'CODE';
       }
 
-      my $msg = $self->msg($command);
+      my $msg = $self->_msg($command);
       print STDERR "sending command ", $command->{type}, "\n" if DEBUG;
       warn 'Sending: ', (unpack 'H*', $msg), "\n" if DEBUG;
 
@@ -312,6 +360,7 @@ sub connect {
 
       $hd->push_read(ref $self, $command => sub {
                        my($handle, $res, $err) = @_;
+                       $hd->timeout(0);
                        print STDERR "read finished $cv\n" if DEBUG;
                        print STDERR "read ",
                          ($cv->ready ? "ready" : "not ready"), "\n" if DEBUG;
@@ -345,6 +394,26 @@ sub connect {
   return $cv;
 }
 
+=method C<devices( $callback, [ $path, [ $condvar ] ] )>
+
+This method identifies all devices below the given path (or '/' if
+the path is not given).  An C<AnyEvent> condvar may also be supplied
+that will be used to track C<begin> and C<end> of all actions carried
+out during the identification process.  If no condvar is provided
+then one will be created.  The condvar is returned from the initial
+call.
+
+The supplied callback is called for each devices with the path to each
+device as the first argument and the condvar for the operation as the
+second argument.  The intention of passing the callback the condvar
+(that if not provided is created by the initial call) is to enable the
+callbacks that need to make further asynchronous calls to use C<begin>
+calls and C<end> calls (in the async callback) on the condvar so that
+the complete operation may be tracked.  See the L<SYNOSIS> for an
+example.
+
+=cut
+
 sub devices {
   my ($self, $cb, $offset, $cv) = @_;
   $offset ||= '/';
@@ -367,6 +436,13 @@ sub devices {
                   });
   $cv;
 }
+
+=method C<anyevent_read_type()>
+
+This method is used to register an L<AnyEvent::Handle> read type
+to read C<OWNet> replies from an C<owserver> daemon.
+
+=cut
 
 sub anyevent_read_type {
   my ($handle, $cb, $command) = @_;

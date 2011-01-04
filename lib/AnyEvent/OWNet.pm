@@ -396,21 +396,23 @@ sub connect {
 
 =method C<devices( $callback, [ $path, [ $condvar ] ] )>
 
-This method identifies all devices below the given path (or '/' if
-the path is not given).  An C<AnyEvent> condvar may also be supplied
-that will be used to track C<begin> and C<end> of all actions carried
-out during the identification process.  If no condvar is provided
-then one will be created.  The condvar is returned from the initial
-call.
+This method identifies all devices below the given path (or '/' if the
+path is not given).  An C<AnyEvent> condvar may also be supplied that
+will be used to track C<begin> and C<end> of all actions carried out
+during the identification process.  If no condvar is provided then one
+will be created.  The condvar used is returned by this method.
 
-The supplied callback is called for each devices with the path to each
+The supplied callback is called for each device with the path to each
 device as the first argument and the condvar for the operation as the
 second argument.  The intention of passing the callback the condvar
 (that if not provided is created by the initial call) is to enable the
 callbacks that need to make further asynchronous calls to use C<begin>
 calls and C<end> calls (in the async callback) on the condvar so that
-the complete operation may be tracked.  See the L<SYNOSIS> for an
+the complete operation may be tracked.  See the L<SYNOPSIS> for an
 example.
+
+This method currently assumes that the C<owserver> supports the C<getslash>
+function and if this is not the case it will fail.
 
 =cut
 
@@ -502,9 +504,8 @@ sub anyevent_read_type {
 
 The result hash will be replaced by a module with simple API.
 
-The code assumes that the C<owserver> will supports persistence and
-does not check the flags to notice when it is not.  Also, the
-L<devices()> method assumes that C<getslash> method is supported.
+The code assumes that the C<owserver> supports persistence and does
+not check the response flags to recognize when it is not.
 
 =head1 SEE ALSO
 

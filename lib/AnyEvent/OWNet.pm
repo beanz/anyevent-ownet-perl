@@ -47,42 +47,7 @@ use AnyEvent::Socket;
 use Carp qw/croak/;
 use Try::Tiny;
 
-use constant {
-  OWNET_BUS_RET     => 0x00000002,
-  OWNET_PERSISTENT  => 0x00000004,
-  OWNET_ALIAS       => 0x00000008,
-  OWNET_SAFEMODE    => 0x00000010,
-  OWNET_NET         => 0x00000100,
-  OWNET_CENTIGRADE  => 0x00000000,
-  OWNET_FAHRENHEIT  => 0x00010000,
-  OWNET_KELVIN      => 0x00020000,
-  OWNET_RANKINE     => 0x00030000,
-  OWNET_MILLIBAR    => 0x00000000,
-  OWNET_ATOMOSPHERE => 0x00040000,
-  OWNET_MM_MERCURY  => 0x00080000,
-  OWNET_IN_MERCURY  => 0x000C0000,
-  OWNET_PSI         => 0x00100000,
-  OWNET_PASCAL      => 0x00140000,
-  OWNET_DISP_F_I    => 0x00000000, # f.i    e.g. /10.67C6697351FF
-  OWNET_DISP_FI     => 0x01000000, # fi     e.g. /1067C6697351FF
-  OWNET_DISP_F_I_C  => 0x02000000, # f.i.c  e.g. /10.67C6697351FF.8D
-  OWNET_DISP_F_IC   => 0x03000000, # f.ic   e.g. /10.67C6697351FF8D
-  OWNET_DISP_FI_C   => 0x04000000, # fi.c   e.g. /10.67C6697351FF8D
-  OWNET_DISP_F_IC   => 0x05000000, # fic    e.g. /1067C6697351FF8D
-
-# OWNET_MSG_NOP         => 0x1,
-  OWNET_MSG_READ        => 0x2,
-  OWNET_MSG_WRITE       => 0x3,
-  OWNET_MSG_DIR         => 0x4,
-# OWNET_MSG_SIZE        => 0x5,
-  OWNET_MSG_PRESENT     => 0x6,
-  OWNET_MSG_DIRALL      => 0x7,
-  OWNET_MSG_GET         => 0x8,
-  OWNET_MSG_DIRALLSLASH => 0x9,
-  OWNET_MSG_GETSLASH    => 0xa,
-
-  OWNET_DEFAULT_DATA_SIZE => 0x80e8,
-};
+use AnyEvent::OWNet::Constants;
 
 =method C<new( %parameter_hash )>
 
@@ -127,7 +92,7 @@ sub _msg {
   my $data = $req->{data} // '';
   my $payload = length $data;
   my $type = $req->{type} // OWNET_MSG_READ; # default to read
-  my $sg = $req->{sg} // OWNET_NET | OWNET_BUS_RET | OWNET_ALIAS | OWNET_PERSISTENT;
+  my $sg = $req->{sg} // OWNET_DEFAULT_FLAGS;
   my $size = $req->{size} // OWNET_DEFAULT_DATA_SIZE;
   my $offset = $req->{offset} // 0;
   return pack 'N6a*', $version, $payload, $type, $sg, $size, $offset, $data;

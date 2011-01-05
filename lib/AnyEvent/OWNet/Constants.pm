@@ -63,27 +63,50 @@ $constants{OWNET_DEFAULT_FLAGS} =
   $constants{OWNET_ALIAS} | $constants{OWNET_PERSISTENT};
 
 sub import {
-  no strict qw/refs/;
+  no strict qw/refs/; ## no critic
   my $pkg = caller(0);
   foreach (keys %constants) {
     my $v = $constants{$_};
-    *{$pkg.'::'.$_} = sub () { $v }
+    *{$pkg.'::'.$_} = sub () { $v };
   }
   *{$pkg.'::ownet_temperature_units'} = \&ownet_temperature_units;
   *{$pkg.'::ownet_pressure_units'} = \&ownet_pressure_units;
   *{$pkg.'::ownet_display_format'} = \&ownet_display_format;
 }
 
+=head1 C<FUNCTIONS>
+
+=head2 C<ownet_temperature_units( $flags )>
+
+Returns the temperature units for the given flags from an
+L<AnyEvent::OWNet::Response> flags attribute.
+
+=cut
+
 sub ownet_temperature_units {
   my $flag = shift;
   [qw/C F K R/]->[($flag & $constants{OWNET_TEMP_MASK}) >> 16]
 }
+
+=head2 C<ownet_pressure_units( $flags )>
+
+Returns the pressure units for the given flags from an
+L<AnyEvent::OWNet::Response> flags attribute.
+
+=cut
 
 sub ownet_pressure_units {
   my $flag = shift;
   [qw/mbar atm mmHg
       inHg psi Pa/]->[($flag & $constants{OWNET_PRESSURE_MASK}) >> 18]
 }
+
+=head2 C<ownet_display_format( $flags )>
+
+Returns the display format from the given flags of an
+L<AnyEvent::OWNet::Response> flags attribute.
+
+=cut
 
 sub ownet_display_format {
   my $flag = shift;

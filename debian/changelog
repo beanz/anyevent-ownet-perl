@@ -1,5 +1,5 @@
-libanyevent-ownet-perl (0.1-1) unstable; urgency=low
+libanyevent-ownet-perl (1.110050-1) unstable; urgency=low
 
   * Initial release.
 
- -- Mark Hindess <soft-debian@temporalanomaly.com>  Fri, 10 Dec 2010 19:57:01 +0000
+ -- Mark Hindess <soft-debian@temporalanomaly.com>  Wed,  5 Jan 2011 22:10:45 +0000

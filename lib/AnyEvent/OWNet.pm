@@ -49,6 +49,8 @@ use Try::Tiny;
 
 use AnyEvent::OWNet::Constants;
 
+use AnyEvent::OWNet::Response;
+
 =method C<new( %parameter_hash )>
 
 Constructs a new L<AnyEvent::OWNet> object.  The parameter hash can contain
@@ -124,7 +126,11 @@ sub write {
 
 =method C<dir($path, $sub)>
 
-Perform an OWNet C<dir> operation for the given path.
+Perform an OWNet C<dir> operation for the given path.  The callback
+will be called once with the list of directory entries in the data
+field which isn't consistent with the (misguided?) low-latency intent
+of this operation so using L<dirall> probably makes more sense
+provided the server supports it.
 
 =cut
 
@@ -334,14 +340,6 @@ sub connect {
                          print STDERR "returning error $err\n" if DEBUG;
                          return $cv->croak($res)
                        }
-                       if (defined $res->{data} &&
-                           ($command->{type} == OWNET_MSG_DIRALL ||
-                            $command->{type} == OWNET_MSG_DIRALLSLASH ||
-                            ( ( $command->{type} == OWNET_MSG_GET ||
-                                $command->{type} == OWNET_MSG_GETSLASH ) &&
-                              $res->{data} =~ /,/))) {
-                         $res->{data} = [split /,/, substr $res->{data}, 0, -1];
-                       }
                        print STDERR "Sending $res\n" if DEBUG;
                        $cv->send($res);
                      });
@@ -389,16 +387,16 @@ sub devices {
   $cv->begin;
   $self->getslash($offset, sub {
                     my $res = shift;
-                    my $data = $res->{data} || [];
-                    $data = [$data] unless (ref $data);
-                    foreach my $d (@$data) {
-                      if ($d =~ m!^.*/[0-9a-f]{2}\.[0-9a-f]{12}/$!i) {
-                        $cb->($d, $cv);
-                        $self->devices($cb, $d, $cv);
-                      } elsif ($d =~ m!/(?:main|aux)/$!) {
-                        $self->devices($cb, $d, $cv);
+                    if ($res->is_success) {
+                      foreach my $d ($res->data_list) {
+                        if ($d =~ m!^.*/[0-9a-f]{2}\.[0-9a-f]{12}/$!i) {
+                          $cb->($d, $cv);
+                          $self->devices($cb, $d, $cv);
+                        } elsif ($d =~ m!/(?:main|aux)/$!) {
+                          $self->devices($cb, $d, $cv);
+                        }
                       }
-                    }
+                    } # TOFIX: propogate error?
                     $cv->end;
                   });
   $cv;
@@ -434,7 +432,7 @@ sub anyevent_read_type {
       $header = substr $$rbuf, 0, 24, '';
       print STDERR "read_type header ", (unpack 'H*', $header), "\n" if DEBUG;
       if ($result{'ret'} > $MAX_RETURN) {
-        $cb->($handle, \%result);
+        $cb->($handle, AnyEvent::OWNet::Response->new(%result));
         return 1;
       }
     } while ($result{payload} > $MAX_RETURN);
@@ -458,7 +456,7 @@ sub anyevent_read_type {
       $result{data} = $data;
     }
     print STDERR "read_type complete\n" if DEBUG;
-    $cb->($handle, \%result);
+    $cb->($handle, AnyEvent::OWNet::Response->new(%result));
     return 1;
   }
 }
@@ -466,8 +464,6 @@ sub anyevent_read_type {
 1;
 
 =head1 TODO
-
-The result hash will be replaced by a module with simple API.
 
 The code assumes that the C<owserver> supports persistence and does
 not check the response flags to recognize when it is not.

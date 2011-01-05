@@ -226,7 +226,7 @@ plan skip_all => "Failed to create dummy server: $@" if ($@);
 my ($host,$port) = @{$cv->recv};
 my $addr = join ':', $host, $port;
 
-plan tests => 38;
+plan tests => 141;
 
 use_ok('AnyEvent::OWNet');
 
@@ -238,28 +238,28 @@ $cv = $ow->dirall('/');
 
 my $res = $cv->recv;
 
-is_deeply($res,
-          {
-           version => 0,
-           ret => 0,
-           sg => 0x0000010a,
-           payload => 137,
-           size => 136,
-           offset => 0x0000c002, # TODO: check what this is
-           data => [qw{/10.A0F7B1000800 /10.6CA8E4000800 /10.2D3ABC000800
-                       /28.E06D9B000000 /bus.0 /settings /system /statistics
-                       /structure /simultaneous /alarm}],
-          }, q{... directory (all) listing});
+resp($res,
+     {
+      version => 0,
+      return_code => 0,
+      flags => 0x0000010a,
+      payload_length => 137,
+      size => 136,
+      offset => 0x0000c002, # TODO: check what this is
+      data => [qw{/10.A0F7B1000800 /10.6CA8E4000800 /10.2D3ABC000800
+                  /28.E06D9B000000 /bus.0 /settings /system /statistics
+                  /structure /simultaneous /alarm}],
+     }, q{... directory (all) listing});
 
 $cv = $ow->present('/settings');
 
 $res = $cv->recv;
-is_deeply($res,
+resp($res,
           {
            version => 0,
-           ret => 0,
-           sg => 0x0000010a,
-           payload => 0,
+           return_code => 0,
+           flags => 0x0000010a,
+           payload_length => 0,
            size => 0,
            offset => 0,
            data => '',
@@ -268,12 +268,12 @@ is_deeply($res,
 $cv = $ow->present('/notexist');
 
 $res = $cv->recv;
-is_deeply($res,
+resp($res,
           {
            version => 0,
-           ret => 0xfffffffe,
-           sg => 0x0000010a,
-           payload => 0,
+           return_code => 0xfffffffe,
+           flags => 0x0000010a,
+           payload_length => 0,
            size => 0,
            offset => 0,
           }, q{... not present check});
@@ -282,12 +282,12 @@ $cv = $ow->read('/28.E06D9B000000/temperature');
 
 $res = $cv->recv;
 
-is_deeply($res,
+resp($res,
           {
            version => 0,
-           ret => 12,
-           sg => 0x0000010a,
-           payload => 12,
+           return_code => 12,
+           flags => 0x0000010a,
+           payload_length => 12,
            size => 12,
            offset => 0,
            data => '      23.625',
@@ -296,24 +296,24 @@ is_deeply($res,
 $cv = $ow->read('/28.E06D9B000000');
 
 $res = $cv->recv;
-is_deeply($res,
+resp($res,
           {
            version => 0,
-           ret => 0xffffffeb,
-           sg => 0x0000010a,
-           payload => 0,
+           return_code => 0xffffffeb,
+           flags => 0x0000010a,
+           payload_length => 0,
            size => 0,
            offset => 0,
           }, q{... bad read of directory});
 
 $cv = $ow->write('/05.F7692C000000/PIO', 0);
 $res = $cv->recv;
-is_deeply($res,
+resp($res,
           {
            version => 0,
-           ret => 0,
-           sg => 0x0000010a,
-           payload => 0,
+           return_code => 0,
+           flags => 0x0000010a,
+           payload_length => 0,
            size => 1,
            offset => 0,
            data => '',
@@ -321,12 +321,12 @@ is_deeply($res,
 
 $cv = $ow->dir('/');
 $res = $cv->recv;
-is_deeply($res,
+resp($res,
           {
            version => 0,
-           ret => 0,
-           sg => 0x00000105,
-           payload => 0,
+           return_code => 0,
+           flags => 0x00000105,
+           payload_length => 0,
            size => 0,
            offset => 0,
            data => [qw{/10.A0F7B1000800 /10.6CA8E4000800 /10.2D3ABC000800}],
@@ -334,12 +334,12 @@ is_deeply($res,
 
 $cv = $ow->dirallslash('/');
 $res = $cv->recv;
-is_deeply($res,
+resp($res,
           {
            version => 0,
-           ret => 0xffffffd6,
-           sg => 0x0000010a,
-           payload => 0,
+           return_code => 0xffffffd6,
+           flags => 0x0000010a,
+           payload_length => 0,
            size => 0,
            offset => 0,
           }, q{... directory with slash listing});
@@ -348,12 +348,12 @@ $cv = $ow->get('/');
 
 $res = $cv->recv;
 
-is_deeply($res,
+resp($res,
           {
            version => 0,
-           ret => 0,
-           sg => 0x0000010a,
-           payload => 137,
+           return_code => 0,
+           flags => 0x0000010a,
+           payload_length => 137,
            size => 136,
            offset => 0x0000c002, # TODO: check what this is
            data => [qw{/10.A0F7B1000800 /10.6CA8E4000800 /10.2D3ABC000800
@@ -363,24 +363,24 @@ is_deeply($res,
 
 $cv = $ow->get('/28.55E1B6010000/temperature',
                sub {
-                 is_deeply($_[0],
+                 resp($_[0],
                            {
                             version => 0,
-                            ret => 12,
-                            sg => 0x0000010a,
-                            payload => 12,
+                            return_code => 12,
+                            flags => 0x0000010a,
+                            payload_length => 12,
                             size => 12,
                             offset => 0,
                             data => '      19.875',
                            }, q{... get temperature (in callback)});
                    });
 $res = $cv->recv;
-is_deeply($res,
+resp($res,
           {
            version => 0,
-           ret => 12,
-           sg => 0x0000010a,
-           payload => 12,
+           return_code => 12,
+           flags => 0x0000010a,
+           payload_length => 12,
            size => 12,
            offset => 0,
            data => '      19.875',
@@ -388,24 +388,24 @@ is_deeply($res,
 
 $cv = $ow->getslash('/28.55E1B6010000/temperature');
 $res = $cv->recv;
-is_deeply($res,
+resp($res,
           {
            version => 0,
-           ret => 4294967254,
-           sg => 0x010a,
-           payload => 0,
+           return_code => 4294967254,
+           flags => 0x010a,
+           payload_length => 0,
            size => 0,
            offset => 0,
           }, q{... getslash temperature});
 
 $cv = $ow->dir('/');
 $res = $cv->recv;
-is_deeply($res,
+resp($res,
           {
            version => 0,
-           ret => 0,
-           sg => 0x00000105,
-           payload => 0,
+           return_code => 0,
+           flags => 0x00000105,
+           payload_length => 0,
            size => 0,
            offset => 0,
            data => [qw{/10.A0F7B1000800 /10.6CA8E4000800 /10.2D3ABC000800}],
@@ -422,34 +422,31 @@ my $cv2 = $ow->write('/05.F7692C000000/PIO', 0, sub { $cbres2 = shift });
 
 $res = $cv->recv;
 
-is_deeply($res,
+resp($res,
           {
            version => 0,
-           ret => 12,
-           sg => 0x0000010a,
-           payload => 12,
+           return_code => 12,
+           flags => 0x0000010a,
+           payload_length => 12,
            size => 12,
            offset => 0,
            data => '      23.625',
           }, q{queued read});
 is($res, $cbres, '... callback and condvar results are equal');
-is_deeply($res, $cbres, '... and (deeply) equal');
 
 my $res2 = $cv2->recv;
 
-is_deeply($res2,
-          {
-           version => 0,
-           ret => 0,
-           sg => 0x0000010a,
-           payload => 0,
-           size => 1,
-           offset => 0,
-           data => '',
-          }, q{queued write});
+resp($res2,
+     {
+      version => 0,
+      return_code => 0,
+      flags => 0x0000010a,
+      payload_length => 0,
+      size => 1,
+      offset => 0,
+      data => '',
+     }, q{queued write});
 is($res2, $cbres2, '... callback and condvar results are equal');
-is_deeply($res2, $cbres2, '... and (deeply) equal');
-
 
 SKIP: {
   skip 'EV traps die', 3 if ($ENV{PERL_ANYEVENT_MODEL} eq 'EV');
@@ -471,4 +468,19 @@ SKIP: {
   is(test_error(sub { my $cv = $ow->dir('/'); $cv->recv }),
      q{Can't connect owserver: Connection refused},
      'connection failure');
+}
+
+sub resp {
+  my ($res, $exp, $desc) = @_;
+
+  ok($res, $desc);
+  foreach (qw/version return_code flags payload_length size offset/) {
+    is($res->$_, $exp->{$_}, '... '.$_);
+  }
+  my $data = $exp->{data};
+  if (ref $data) {
+    is_deeply([$res->data_list], $data, '... data (list)');
+  } else {
+    is($res->data, $data, '... data (scalar)');
+  }
 }

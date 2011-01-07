@@ -465,9 +465,8 @@ SKIP: {
 
   $ow = AnyEvent::OWNet->new(host => $host, port => $port);
 
-  is(test_error(sub { my $cv = $ow->dir('/'); $cv->recv }),
-     q{Can't connect owserver: Connection refused},
-     'connection failure');
+  like(test_error(sub { my $cv = $ow->dir('/'); $cv->recv }),
+     qr/^Can't connect owserver: /, 'connection failure');
 }
 
 sub resp {

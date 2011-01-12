@@ -9,17 +9,22 @@ package AnyEvent::OWNet;
   # IMPORTANT: the API is subject to change
 
   my $ow = AnyEvent::OWNet->new(host => '127.0.0.1',
-                                port => 4304,
                                 on_error => sub { warn @_ });
 
   # Read temperature sensor
   $ow->read('/10.123456789012/temperature', sub { my ($res) = @_; ... });
 
-  # Read the temperatures of all devices that are found
+  # List all devices
   my $cv;
   $cv = $ow->devices(sub {
                        my $dev = shift;
                        print $dev, "\n";
+                     });
+  $cv->recv;
+
+  # Read the temperatures of all devices that are found
+  $cv = $ow->devices(sub {
+                       my $dev = shift;
                        $cv->begin;
                        $ow->get($dev.'temperature',
                                 sub {
@@ -27,9 +32,23 @@ package AnyEvent::OWNet;
                                   $cv->end;
                                   my $value = $res->{data};
                                   return unless (defined $value);
-                                  print $dev, " = ", 0+$value, "\n";
+                                  print $dev, ' = ', 0+$value, "\n";
                                 });
                      });
+  $cv->recv;
+
+  # short version of the above
+  $cv = $ow->device_files(sub {
+                            my ($dev, $file, $value) = @_;
+                            print $dev, ' = ', 0+$value, "\n";
+                          }, 'temperature');
+  $cv->recv;
+
+  # read humidity as well
+  $cv = $ow->device_files(sub {
+                            my ($dev, $file, $value) = @_;
+                            print $dev, $file, ' = ', 0+$value, "\n";
+                          }, ['temperature', 'humidity']);
   $cv->recv;
 
 =head1 DESCRIPTION
@@ -400,6 +419,34 @@ sub devices {
                     $cv->end;
                   });
   $cv;
+}
+
+=method C<device_files( $callback, $file, [ $path, [ $condvar ] ] )>
+
+Visit each device using L<devices()> and call the callback with the
+result of successful L<get()> calls for C<$file> relative to each
+device found.  If C<$file> is an array reference each array element
+is treated as a relative file.
+
+=cut
+
+sub device_files {
+  my ($self, $cb, $files, $offset, $cv) = @_;
+  $files = [$files] unless (ref $files);
+  $cv = $self->devices(sub {
+                 my $dev = shift;
+                 foreach my $file (@$files) {
+                   $cv->begin;
+                   $self->get($dev.$file,
+                            sub {
+                              my $res = shift;
+                              $cv->end;
+                              my $value = $res->{data};
+                              return unless (defined $value);
+                              $cb->($dev, $file, 0+$value);
+                            });
+                 }
+               }, $offset, $cv);
 }
 
 =method C<anyevent_read_type()>

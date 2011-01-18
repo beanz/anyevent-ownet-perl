@@ -459,9 +459,9 @@ SKIP: {
   $ow = AnyEvent::OWNet->new(host => $host, port => $port,
                              on_error => sub {die @_});
 
-  is(test_error(sub { my $cv = $ow->dir('/');
-                      $ow->dir('/settings'); $cv->recv; }),
-     q{Broken pipe}, 'closed connection on write');
+  like(test_error(sub { my $cv = $ow->dir('/');
+                        $ow->dir('/settings'); $cv->recv; }),
+       qr/^Error: /, 'closed connection on write');
 
   $ow = AnyEvent::OWNet->new(host => $host, port => $port);
 

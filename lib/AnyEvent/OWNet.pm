@@ -302,7 +302,7 @@ sub connect {
                               print STDERR "handle error $_[2]\n" if DEBUG;
                               $_[0]->destroy;
                               if ($_[1]) {
-                                $self->cleanup($_[2]);
+                                $self->cleanup('Error: '.$_[2]);
                               }
                             },
                             on_eof => sub {

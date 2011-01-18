@@ -1,3 +1,10 @@
+libanyevent-ownet-perl (1.110180-1) unstable; urgency=low
+
+  * Add higher level file visitor method.
+  * Make test less platform-specific (thx CPAN testers).
+
+ -- Mark Hindess <soft-debian@temporalanomaly.com>  Tue, 18 Jan 2011 16:58:06 +0000
+
 libanyevent-ownet-perl (1.110050-1) unstable; urgency=low
 
   * Initial release.

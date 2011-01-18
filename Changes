@@ -1,6 +1,8 @@
 Revision history for Perl extension AnyEvent::OWNet.
 
 {{$NEXT}}
+
+1.110180  2011-01-18 16:55:46 Europe/London
     - Add higher level file visitor method.
     - Make test less platform-specific (thx CPAN testers).
 

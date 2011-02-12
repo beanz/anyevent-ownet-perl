@@ -58,7 +58,7 @@ daemon.
 
 =cut
 
-use 5.010;
+use 5.008;
 use constant DEBUG => $ENV{ANYEVENT_OWNET_DEBUG};
 use AnyEvent;
 use AnyEvent::Handle;
@@ -109,13 +109,14 @@ sub new {
 
 sub _msg {
   my ($self, $req) = @_;
-  my $version = $req->{version} // 0;
-  my $data = $req->{data} // '';
+  my $version = exists $req->{version} ? $req->{version} : 0;
+  my $data = exists $req->{data} ? $req->{data} : '';
   my $payload = length $data;
-  my $type = $req->{type} // OWNET_MSG_READ; # default to read
-  my $sg = $req->{sg} // OWNET_DEFAULT_FLAGS;
-  my $size = $req->{size} // OWNET_DEFAULT_DATA_SIZE;
-  my $offset = $req->{offset} // 0;
+  my $type =
+    exists $req->{type} ? $req->{type} : OWNET_MSG_READ; # default to read
+  my $sg = exists $req->{sg} ? $req->{sg} : OWNET_DEFAULT_FLAGS;
+  my $size = exists $req->{size} ? $req->{size} : OWNET_DEFAULT_DATA_SIZE;
+  my $offset = exists $req->{offset} ? $req->{offset} : 0;
   return pack 'N6a*', $version, $payload, $type, $sg, $size, $offset, $data;
 }
 

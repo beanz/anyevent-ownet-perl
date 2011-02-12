@@ -1,6 +1,7 @@
 Revision history for Perl extension AnyEvent::OWNet.
 
 {{$NEXT}}
+    - Reduce perl version requirement to 5.8.
 
 1.110180  2011-01-18 16:55:46 Europe/London
     - Add higher level file visitor method.

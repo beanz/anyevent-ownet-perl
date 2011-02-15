@@ -64,6 +64,7 @@ use AnyEvent;
 use AnyEvent::Handle;
 use AnyEvent::Socket;
 use Carp qw/croak/;
+use Sub::Name;
 use Try::Tiny;
 
 use AnyEvent::OWNet::Constants;
@@ -284,7 +285,9 @@ sub connect {
 
   return $cv if $self->{sock};
 
-  $self->{sock} = tcp_connect $self->{host}, $self->{port}, sub {
+  $self->{sock} =
+    tcp_connect $self->{host}, $self->{port},
+      subname 'tcp_connect_cb' => sub {
 
     my $fh = shift
       or do {
@@ -299,25 +302,25 @@ sub connect {
     my $hd =
       AnyEvent::Handle->new(
                             fh => $fh,
-                            on_error => sub {
+                            on_error => subname('on_error_cb' => sub {
                               print STDERR "handle error $_[2]\n" if DEBUG;
                               $_[0]->destroy;
                               if ($_[1]) {
                                 $self->cleanup('Error: '.$_[2]);
                               }
-                            },
-                            on_eof => sub {
+                            }),
+                            on_eof => subname('on_eof_cb' => sub {
                               print STDERR "handle eof\n" if DEBUG;
                               $_[0]->destroy;
                               $self->cleanup('Connection closed');
-                            },
-                            on_timeout => sub {
+                            }),
+                            on_timeout => subname('on_timeout_cb' => sub {
                               print STDERR "handle timeout\n" if DEBUG;
                               $_[0]->destroy;
                               $self->cleanup('Socket timeout');
-                            }
+                            })
                            );
-    $self->{cmd_cb} = sub {
+    $self->{cmd_cb} = subname 'command_sub' => sub {
       $self->all_cv->begin;
       my $command = shift;
 
@@ -338,7 +341,7 @@ sub connect {
 
       print STDERR "using condvar $cv\n" if DEBUG;
 
-      $cv->cb(sub {
+      $cv->cb(subname 'command_cb' => sub {
                 my $cv = shift;
                 print STDERR "calling callback $cv\n" if DEBUG;
                 try {
@@ -349,7 +352,7 @@ sub connect {
                 }
               }) if $cb;
 
-      $hd->push_read(ref $self, $command => sub {
+      $hd->push_read(ref $self, $command => subname 'push_read_cb' => sub {
                        my($handle, $res, $err) = @_;
                        $hd->timeout(0);
                        print STDERR "read finished $cv\n" if DEBUG;
@@ -405,7 +408,7 @@ sub devices {
   $cv ||= AnyEvent->condvar;
   print STDERR "devices: $offset\n" if DEBUG;
   $cv->begin;
-  $self->getslash($offset, sub {
+  $self->getslash($offset, subname 'devices_getslash_cb' => sub {
                     my $res = shift;
                     if ($res->is_success) {
                       foreach my $d ($res->data_list) {
@@ -434,20 +437,20 @@ is treated as a relative file.
 sub device_files {
   my ($self, $cb, $files, $offset, $cv) = @_;
   $files = [$files] unless (ref $files);
-  $cv = $self->devices(sub {
+  $cv = $self->devices(subname('device_files_devices_cb' => sub {
                  my $dev = shift;
                  foreach my $file (@$files) {
                    $cv->begin;
                    $self->get($dev.$file,
-                            sub {
-                              my $res = shift;
-                              $cv->end;
-                              my $value = $res->{data};
-                              return unless (defined $value);
-                              $cb->($dev, $file, 0+$value);
-                            });
+                              subname 'device_files_get_cb' => sub {
+                                my $res = shift;
+                                $cv->end;
+                                my $value = $res->{data};
+                                return unless (defined $value);
+                                $cb->($dev, $file, 0+$value);
+                              });
                  }
-               }, $offset, $cv);
+               }), $offset, $cv);
 }
 
 =method C<anyevent_read_type()>
@@ -462,7 +465,7 @@ sub anyevent_read_type {
 
   my $MAX_RETURN = 66000;
   my @data;
-  sub {
+  subname 'anyevent_read_type_reader' => sub {
     my $rbuf = \$handle->{rbuf};
 
   REDO:

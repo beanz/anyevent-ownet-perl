@@ -517,7 +517,7 @@ sub anyevent_read_type {
 =head1 TODO
 
 The code assumes that the C<owserver> supports persistence and does
-not check the response flags to recognize when it is not.
+not check the response flags to recognize when it does not.
 
 =head1 SEE ALSO
 

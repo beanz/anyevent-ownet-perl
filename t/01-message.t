@@ -22,5 +22,3 @@ sub test_msg {
   my ($req, $hex, $desc) = @_;
   is((unpack 'H*', AnyEvent::OWNet->_msg($req)), $hex, $desc);
 }
-
-

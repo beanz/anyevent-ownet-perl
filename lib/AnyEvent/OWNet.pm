@@ -443,7 +443,7 @@ Perform an OWNet C<write> operation of the given value to the given path.
 Perform an OWNet C<dir> operation for the given path.  The callback
 will be called once with the list of directory entries in the data
 field which isn't consistent with the (misguided?) low-latency intent
-of this operation so using L<dirall> probably makes more sense
+of this operation so using L</dirall()> probably makes more sense
 provided the server supports it.
 
 =head2 C<present($path, $sub)>
@@ -505,8 +505,8 @@ function and if this is not the case it will fail.
 
 =head2 C<device_files( $callback, $file, [ $path, [ $condvar ] ] )>
 
-Visit each device using L<devices()> and call the callback with the
-result of successful L<get()> calls for C<$file> relative to each
+Visit each device using L</devices()> and call the callback with the
+result of successful L</get()> calls for C<$file> relative to each
 device found.  If C<$file> is an array reference each array element
 is treated as a relative file.
 

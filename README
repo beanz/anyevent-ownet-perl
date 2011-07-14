@@ -80,7 +80,7 @@ METHODS
     Perform an OWNet "dir" operation for the given path. The callback will
     be called once with the list of directory entries in the data field
     which isn't consistent with the (misguided?) low-latency intent of this
-    operation so using "dirall()" probably makes more sense provided the
+    operation so using dirall() probably makes more sense provided the
     server supports it.
 
   "present($path, $sub)"
@@ -125,7 +125,7 @@ METHODS
     if not provided is created by the initial call) is to enable the
     callbacks that need to make further asynchronous calls to use "begin"
     calls and "end" calls (in the async callback) on the condvar so that the
-    complete operation may be tracked. See the SYNOPSIS for an example.
+    complete operation may be tracked. See the "SYNOPSIS" for an example.
 
     This method currently assumes that the "owserver" supports the
     "getslash" function and if this is not the case it will fail.

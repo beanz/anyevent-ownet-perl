@@ -443,8 +443,8 @@ Perform an OWNet C<write> operation of the given value to the given path.
 Perform an OWNet C<dir> operation for the given path.  The callback
 will be called once with the list of directory entries in the data
 field which isn't consistent with the (misguided?) low-latency intent
-of this operation so using L</dirall()> probably makes more sense
-provided the server supports it.
+of this operation so using L<dirall()|/"dirall($path, $sub)"> probably
+makes more sense provided the server supports it.
 
 =head2 C<present($path, $sub)>
 
@@ -497,7 +497,7 @@ second argument.  The intention of passing the callback the condvar
 (that if not provided is created by the initial call) is to enable the
 callbacks that need to make further asynchronous calls to use C<begin>
 calls and C<end> calls (in the async callback) on the condvar so that
-the complete operation may be tracked.  See the L<SYNOPSIS> for an
+the complete operation may be tracked.  See the L</SYNOPSIS> for an
 example.
 
 This method currently assumes that the C<owserver> supports the C<getslash>

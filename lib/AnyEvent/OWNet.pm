@@ -12,7 +12,11 @@ package AnyEvent::OWNet;
                                 on_error => sub { warn @_ });
 
   # Read temperature sensor
-  $ow->read('/10.123456789012/temperature', sub { my ($res) = @_; ... });
+  $ow->read('/10.123456789012/temperature',
+            sub {
+              my ($res) = @_;
+              # ...
+            });
 
   # List all devices
   my $cv;
@@ -150,8 +154,8 @@ sub write {
 Perform an OWNet C<dir> operation for the given path.  The callback
 will be called once with the list of directory entries in the data
 field which isn't consistent with the (misguided?) low-latency intent
-of this operation so using L<dirall> probably makes more sense
-provided the server supports it.
+of this operation so using L<dirall()|/"dirall($path, $sub)"> probably
+makes more sense provided the server supports it.
 
 =cut
 
@@ -394,7 +398,7 @@ second argument.  The intention of passing the callback the condvar
 (that if not provided is created by the initial call) is to enable the
 callbacks that need to make further asynchronous calls to use C<begin>
 calls and C<end> calls (in the async callback) on the condvar so that
-the complete operation may be tracked.  See the L<SYNOPSIS> for an
+the complete operation may be tracked.  See the L</SYNOPSIS> for an
 example.
 
 This method currently assumes that the C<owserver> supports the C<getslash>
@@ -427,10 +431,11 @@ sub devices {
 
 =method C<device_files( $callback, $file, [ $path, [ $condvar ] ] )>
 
-Visit each device using L<devices()> and call the callback with the
-result of successful L<get()> calls for C<$file> relative to each
-device found.  If C<$file> is an array reference each array element
-is treated as a relative file.
+Visit each device using
+L<devices()|/"devices( $callback, [ $path, [ $condvar ] ] )"> and call
+the callback with the result of successful L<get()|/"get($path, $sub)">
+calls for C<$file> relative to each device found.  If C<$file> is an
+array reference each array element is treated as a relative file.
 
 =cut
 

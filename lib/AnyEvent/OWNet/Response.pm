@@ -59,10 +59,11 @@ sub version {
 =method C<flags()>
 
 Returns the flags field of the response from the C<owserver> daemon.
-The L<AnyEvent::OWNet::Constants#ownet_temperature_units>,
-L<AnyEvent::OWNet::Constants#ownet_pressure_units>, and
-L<AnyEvent::OWNet::Constants#ownet_display_format> functions can be
-used to extract some elements from this value.
+The L<AnyEvent::OWNet::Constants::ownet_temperature_units()|AnyEvent::OWNet::Constants/"ownet_temperature_units( $flags )">,
+L<AnyEvent::OWNet::Constants#ownet_pressure_units()|AnyEvent::OWNet::Constants/"ownet_pressure_units( $flags )">,
+and
+L<AnyEvent::OWNet::Constants#ownet_display_format()|AnyEvent::OWNet::Constants/"ownet_display_format( $flags )">
+functions can be used to extract some elements from this value.
 
 =cut
 

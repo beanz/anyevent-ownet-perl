@@ -132,7 +132,7 @@ METHODS
 
   "device_files( $callback, $file, [ $path, [ $condvar ] ] )"
     Visit each device using devices() and call the callback with the result
-    of successful "get()" calls for $file relative to each device found. If
+    of successful get() calls for $file relative to each device found. If
     $file is an array reference each array element is treated as a relative
     file.
 

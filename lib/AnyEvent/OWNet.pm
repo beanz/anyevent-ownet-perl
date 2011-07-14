@@ -507,9 +507,9 @@ function and if this is not the case it will fail.
 
 Visit each device using
 L<devices()|/"devices( $callback, [ $path, [ $condvar ] ] )"> and call
-the callback with the result of successful L</get()> calls for
-C<$file> relative to each device found.  If C<$file> is an array
-reference each array element is treated as a relative file.
+the callback with the result of successful L<get()|/"get($path, $sub)">
+calls for C<$file> relative to each device found.  If C<$file> is an
+array reference each array element is treated as a relative file.
 
 =head2 C<anyevent_read_type()>
 

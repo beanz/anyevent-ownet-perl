@@ -361,7 +361,11 @@ version 1.111950
                                 on_error => sub { warn @_ });
 
   # Read temperature sensor
-  $ow->read('/10.123456789012/temperature', sub { my ($res) = @_; ... });
+  $ow->read('/10.123456789012/temperature',
+            sub {
+              my ($res) = @_;
+              # ...
+            });
 
   # List all devices
   my $cv;

@@ -131,10 +131,10 @@ METHODS
     "getslash" function and if this is not the case it will fail.
 
   "device_files( $callback, $file, [ $path, [ $condvar ] ] )"
-    Visit each device using "devices()" and call the callback with the
-    result of successful "get()" calls for $file relative to each device
-    found. If $file is an array reference each array element is treated as a
-    relative file.
+    Visit each device using devices() and call the callback with the result
+    of successful "get()" calls for $file relative to each device found. If
+    $file is an array reference each array element is treated as a relative
+    file.
 
   "anyevent_read_type()"
     This method is used to register an AnyEvent::Handle read type to read

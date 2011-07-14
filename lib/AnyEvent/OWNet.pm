@@ -1,62 +1,12 @@
 use strict;
 use warnings;
 package AnyEvent::OWNet;
+BEGIN {
+  $AnyEvent::OWNet::VERSION = '1.111950';
+}
 
 # ABSTRACT: Client for 1-wire File System server
 
-=head1 SYNOPSIS
-
-  # IMPORTANT: the API is subject to change
-
-  my $ow = AnyEvent::OWNet->new(host => '127.0.0.1',
-                                on_error => sub { warn @_ });
-
-  # Read temperature sensor
-  $ow->read('/10.123456789012/temperature', sub { my ($res) = @_; ... });
-
-  # List all devices
-  my $cv;
-  $cv = $ow->devices(sub {
-                       my $dev = shift;
-                       print $dev, "\n";
-                     });
-  $cv->recv;
-
-  # Read the temperatures of all devices that are found
-  $cv = $ow->devices(sub {
-                       my $dev = shift;
-                       $cv->begin;
-                       $ow->get($dev.'temperature',
-                                sub {
-                                  my $res = shift;
-                                  $cv->end;
-                                  my $value = $res->{data};
-                                  return unless (defined $value);
-                                  print $dev, ' = ', 0+$value, "\n";
-                                });
-                     });
-  $cv->recv;
-
-  # short version of the above
-  $cv = $ow->device_files(sub {
-                            my ($dev, $file, $value) = @_;
-                            print $dev, ' = ', 0+$value, "\n";
-                          }, 'temperature');
-  $cv->recv;
-
-  # read humidity as well
-  $cv = $ow->device_files(sub {
-                            my ($dev, $file, $value) = @_;
-                            print $dev, $file, ' = ', 0+$value, "\n";
-                          }, ['temperature', 'humidity']);
-  $cv->recv;
-
-=head1 DESCRIPTION
-
-AnyEvent module for handling communication with an owfs 1-wire server
-daemon.
-
-=cut
 
 use 5.008;
 use constant DEBUG => $ENV{ANYEVENT_OWNET_DEBUG};
@@ -71,30 +21,6 @@ use AnyEvent::OWNet::Constants;
 
 use AnyEvent::OWNet::Response;
 
-=method C<new( %parameter_hash )>
-
-Constructs a new L<AnyEvent::OWNet> object.  The parameter hash can contain
-values for the following keys:
-
-=over
-
-=item C<host>
-
-The host IP of the running C<owserver> daemon.  Default is the IPv4
-loopback address, C<127.0.0.1>.
-
-=item C<port>
-
-The TCP port of the running C<owserver> daemon.  Default is C<4304>.
-
-=item C<timeout>
-
-The timeout in seconds to wait for responses from the server.  Default
-is 5 seconds.
-
-=back
-
-=cut
 
 sub new {
   my ($pkg, %p) = @_;
@@ -121,22 +47,12 @@ sub _msg {
   return pack 'N6a*', $version, $payload, $type, $sg, $size, $offset, $data;
 }
 
-=method C<read($path, $sub)>
-
-Perform an OWNet C<read> operation for the given path.
-
-=cut
 
 sub read {
   my ($self, $path, $sub) = @_;
   $self->_run_cmd({ data => $path.chr(0), type => OWNET_MSG_READ }, $sub);
 }
 
-=method C<write($path, $value, $sub)>
-
-Perform an OWNet C<write> operation of the given value to the given path.
-
-=cut
 
 sub write {
   my ($self, $path, $value, $sub) = @_;
@@ -145,15 +61,6 @@ sub write {
                    type => OWNET_MSG_WRITE }, $sub);
 }
 
-=method C<dir($path, $sub)>
-
-Perform an OWNet C<dir> operation for the given path.  The callback
-will be called once with the list of directory entries in the data
-field which isn't consistent with the (misguided?) low-latency intent
-of this operation so using L<dirall> probably makes more sense
-provided the server supports it.
-
-=cut
 
 sub dir {
   my ($self, $path, $sub) = @_;
@@ -161,55 +68,30 @@ sub dir {
                  $sub);
 }
 
-=method C<present($path, $sub)>
-
-Perform an OWNet C<present> check on the given path.
-
-=cut
 
 sub present {
   my ($self, $path, $sub) = @_;
   $self->_run_cmd({ data => $path."\0", type => OWNET_MSG_PRESENT }, $sub);
 }
 
-=method C<dirall($path, $sub)>
-
-Perform an OWNet C<dirall> operation on the given path.
-
-=cut
 
 sub dirall {
   my ($self, $path, $sub) = @_;
   $self->_run_cmd({ data => $path."\0", type => OWNET_MSG_DIRALL }, $sub);
 }
 
-=method C<get($path, $sub)>
-
-Perform an OWNet C<get> operation on the given path.
-
-=cut
 
 sub get {
   my ($self, $path, $sub) = @_;
   $self->_run_cmd({ data => $path."\0", type => OWNET_MSG_GET }, $sub);
 }
 
-=method C<dirallslash($path, $sub)>
-
-Perform an OWNet C<dirall> operation on the given path.
-
-=cut
 
 sub dirallslash {
   my ($self, $path, $sub) = @_;
   $self->_run_cmd({ data => $path."\0", type => OWNET_MSG_DIRALLSLASH }, $sub);
 }
 
-=method C<getslash($path, $sub)>
-
-Perform an OWNet C<get> operation on the given path.
-
-=cut
 
 sub getslash {
   my ($self, $path, $sub) = @_;
@@ -227,14 +109,6 @@ sub _run_cmd {
 
 sub DESTROY { }
 
-=method C<all_cv( [ $condvar ] )>
-
-This method returns the L<AnyEvent> condvar that is used to track all
-outstanding operations.  It can also be used to set the initial value
-but this is only sensible when no operations are currently outstanding
-and is not normally necessary.
-
-=cut
 
 sub all_cv {
   my $self = shift;
@@ -245,12 +119,6 @@ sub all_cv {
   $self->{all_cv};
 }
 
-=method C<cleanup( @error )>
-
-This method is called on error or when the closing the connection to
-free up resources and notify any receivers of errors.
-
-=cut
 
 sub cleanup {
   my $self = shift;
@@ -267,12 +135,6 @@ sub cleanup {
   $self->{on_error}->(@_) if $self->{on_error};
 }
 
-=method C<connect( [ $command, $callback|$condvar ] )>
-
-This method connects to the C<owserver> daemon.  It is called automatically
-when the first command is attempted.
-
-=cut
 
 sub connect {
   my $self = shift;
@@ -380,27 +242,6 @@ sub connect {
   return $cv;
 }
 
-=method C<devices( $callback, [ $path, [ $condvar ] ] )>
-
-This method identifies all devices below the given path (or '/' if the
-path is not given).  An C<AnyEvent> condvar may also be supplied that
-will be used to track C<begin> and C<end> of all actions carried out
-during the identification process.  If no condvar is provided then one
-will be created.  The condvar used is returned by this method.
-
-The supplied callback is called for each device with the path to each
-device as the first argument and the condvar for the operation as the
-second argument.  The intention of passing the callback the condvar
-(that if not provided is created by the initial call) is to enable the
-callbacks that need to make further asynchronous calls to use C<begin>
-calls and C<end> calls (in the async callback) on the condvar so that
-the complete operation may be tracked.  See the L<SYNOPSIS> for an
-example.
-
-This method currently assumes that the C<owserver> supports the C<getslash>
-function and if this is not the case it will fail.
-
-=cut
 
 sub devices {
   my ($self, $cb, $offset, $cv) = @_;
@@ -425,14 +266,6 @@ sub devices {
   $cv;
 }
 
-=method C<device_files( $callback, $file, [ $path, [ $condvar ] ] )>
-
-Visit each device using L<devices()> and call the callback with the
-result of successful L<get()> calls for C<$file> relative to each
-device found.  If C<$file> is an array reference each array element
-is treated as a relative file.
-
-=cut
 
 sub device_files {
   my ($self, $cb, $files, $offset, $cv) = @_;
@@ -453,12 +286,6 @@ sub device_files {
                }), $offset, $cv);
 }
 
-=method C<anyevent_read_type()>
-
-This method is used to register an L<AnyEvent::Handle> read type
-to read C<OWNet> replies from an C<owserver> daemon.
-
-=cut
 
 sub anyevent_read_type {
   my ($handle, $cb, $command) = @_;
@@ -514,6 +341,180 @@ sub anyevent_read_type {
 
 1;
 
+
+__END__
+=pod
+
+=head1 NAME
+
+AnyEvent::OWNet - Client for 1-wire File System server
+
+=head1 VERSION
+
+version 1.111950
+
+=head1 SYNOPSIS
+
+  # IMPORTANT: the API is subject to change
+
+  my $ow = AnyEvent::OWNet->new(host => '127.0.0.1',
+                                on_error => sub { warn @_ });
+
+  # Read temperature sensor
+  $ow->read('/10.123456789012/temperature', sub { my ($res) = @_; ... });
+
+  # List all devices
+  my $cv;
+  $cv = $ow->devices(sub {
+                       my $dev = shift;
+                       print $dev, "\n";
+                     });
+  $cv->recv;
+
+  # Read the temperatures of all devices that are found
+  $cv = $ow->devices(sub {
+                       my $dev = shift;
+                       $cv->begin;
+                       $ow->get($dev.'temperature',
+                                sub {
+                                  my $res = shift;
+                                  $cv->end;
+                                  my $value = $res->{data};
+                                  return unless (defined $value);
+                                  print $dev, ' = ', 0+$value, "\n";
+                                });
+                     });
+  $cv->recv;
+
+  # short version of the above
+  $cv = $ow->device_files(sub {
+                            my ($dev, $file, $value) = @_;
+                            print $dev, ' = ', 0+$value, "\n";
+                          }, 'temperature');
+  $cv->recv;
+
+  # read humidity as well
+  $cv = $ow->device_files(sub {
+                            my ($dev, $file, $value) = @_;
+                            print $dev, $file, ' = ', 0+$value, "\n";
+                          }, ['temperature', 'humidity']);
+  $cv->recv;
+
+=head1 DESCRIPTION
+
+AnyEvent module for handling communication with an owfs 1-wire server
+daemon.
+
+=head1 METHODS
+
+=head2 C<new( %parameter_hash )>
+
+Constructs a new L<AnyEvent::OWNet> object.  The parameter hash can contain
+values for the following keys:
+
+=over
+
+=item C<host>
+
+The host IP of the running C<owserver> daemon.  Default is the IPv4
+loopback address, C<127.0.0.1>.
+
+=item C<port>
+
+The TCP port of the running C<owserver> daemon.  Default is C<4304>.
+
+=item C<timeout>
+
+The timeout in seconds to wait for responses from the server.  Default
+is 5 seconds.
+
+=back
+
+=head2 C<read($path, $sub)>
+
+Perform an OWNet C<read> operation for the given path.
+
+=head2 C<write($path, $value, $sub)>
+
+Perform an OWNet C<write> operation of the given value to the given path.
+
+=head2 C<dir($path, $sub)>
+
+Perform an OWNet C<dir> operation for the given path.  The callback
+will be called once with the list of directory entries in the data
+field which isn't consistent with the (misguided?) low-latency intent
+of this operation so using L<dirall> probably makes more sense
+provided the server supports it.
+
+=head2 C<present($path, $sub)>
+
+Perform an OWNet C<present> check on the given path.
+
+=head2 C<dirall($path, $sub)>
+
+Perform an OWNet C<dirall> operation on the given path.
+
+=head2 C<get($path, $sub)>
+
+Perform an OWNet C<get> operation on the given path.
+
+=head2 C<dirallslash($path, $sub)>
+
+Perform an OWNet C<dirall> operation on the given path.
+
+=head2 C<getslash($path, $sub)>
+
+Perform an OWNet C<get> operation on the given path.
+
+=head2 C<all_cv( [ $condvar ] )>
+
+This method returns the L<AnyEvent> condvar that is used to track all
+outstanding operations.  It can also be used to set the initial value
+but this is only sensible when no operations are currently outstanding
+and is not normally necessary.
+
+=head2 C<cleanup( @error )>
+
+This method is called on error or when the closing the connection to
+free up resources and notify any receivers of errors.
+
+=head2 C<connect( [ $command, $callback|$condvar ] )>
+
+This method connects to the C<owserver> daemon.  It is called automatically
+when the first command is attempted.
+
+=head2 C<devices( $callback, [ $path, [ $condvar ] ] )>
+
+This method identifies all devices below the given path (or '/' if the
+path is not given).  An C<AnyEvent> condvar may also be supplied that
+will be used to track C<begin> and C<end> of all actions carried out
+during the identification process.  If no condvar is provided then one
+will be created.  The condvar used is returned by this method.
+
+The supplied callback is called for each device with the path to each
+device as the first argument and the condvar for the operation as the
+second argument.  The intention of passing the callback the condvar
+(that if not provided is created by the initial call) is to enable the
+callbacks that need to make further asynchronous calls to use C<begin>
+calls and C<end> calls (in the async callback) on the condvar so that
+the complete operation may be tracked.  See the L<SYNOPSIS> for an
+example.
+
+This method currently assumes that the C<owserver> supports the C<getslash>
+function and if this is not the case it will fail.
+
+=head2 C<device_files( $callback, $file, [ $path, [ $condvar ] ] )>
+
+Visit each device using L<devices()> and call the callback with the
+result of successful L<get()> calls for C<$file> relative to each
+device found.  If C<$file> is an array reference each array element
+is treated as a relative file.
+
+=head2 C<anyevent_read_type()>
+
+This method is used to register an L<AnyEvent::Handle> read type
+to read C<OWNet> replies from an C<owserver> daemon.
+
 =head1 TODO
 
 The code assumes that the C<owserver> supports persistence and does
@@ -526,3 +527,17 @@ AnyEvent(3)
 OWFS Website: http://owfs.org/
 
 OWFS Protocol Document: http://owfs.org/index.php?page=owserver-protocol
+
+=head1 AUTHOR
+
+Mark Hindess <soft-cpan@temporalanomaly.com>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2011 by Mark Hindess.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
+=cut
+

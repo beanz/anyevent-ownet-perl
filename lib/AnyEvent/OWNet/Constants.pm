@@ -1,18 +1,12 @@
 use strict;
 use warnings;
 package AnyEvent::OWNet::Constants;
+BEGIN {
+  $AnyEvent::OWNet::Constants::VERSION = '1.111950';
+}
 
 # ABSTRACT: Module to export constants for 1-wire File System daemon protocol
 
-=head1 SYNOPSIS
-
-  use AnyEvent::OWNet::Constants;
-
-=head1 DESCRIPTION
-
-Module to export constants for owfs daemon protocol.
-
-=cut
 
 my %constants =
   (
@@ -74,26 +68,12 @@ sub import {
   *{$pkg.'::ownet_display_format'} = \&ownet_display_format;
 }
 
-=head1 C<FUNCTIONS>
-
-=head2 C<ownet_temperature_units( $flags )>
-
-Returns the temperature units for the given flags from an
-L<AnyEvent::OWNet::Response> flags attribute.
-
-=cut
 
 sub ownet_temperature_units {
   my $flag = shift;
   [qw/C F K R/]->[($flag & $constants{OWNET_TEMP_MASK}) >> 16]
 }
 
-=head2 C<ownet_pressure_units( $flags )>
-
-Returns the pressure units for the given flags from an
-L<AnyEvent::OWNet::Response> flags attribute.
-
-=cut
 
 sub ownet_pressure_units {
   my $flag = shift;
@@ -101,12 +81,6 @@ sub ownet_pressure_units {
       inHg psi Pa/]->[($flag & $constants{OWNET_PRESSURE_MASK}) >> 18]
 }
 
-=head2 C<ownet_display_format( $flags )>
-
-Returns the display format from the given flags of an
-L<AnyEvent::OWNet::Response> flags attribute.
-
-=cut
 
 sub ownet_display_format {
   my $flag = shift;
@@ -115,3 +89,53 @@ sub ownet_display_format {
 }
 
 1;
+
+__END__
+=pod
+
+=head1 NAME
+
+AnyEvent::OWNet::Constants - Module to export constants for 1-wire File System daemon protocol
+
+=head1 VERSION
+
+version 1.111950
+
+=head1 SYNOPSIS
+
+  use AnyEvent::OWNet::Constants;
+
+=head1 DESCRIPTION
+
+Module to export constants for owfs daemon protocol.
+
+=head1 C<FUNCTIONS>
+
+=head2 C<ownet_temperature_units( $flags )>
+
+Returns the temperature units for the given flags from an
+L<AnyEvent::OWNet::Response> flags attribute.
+
+=head2 C<ownet_pressure_units( $flags )>
+
+Returns the pressure units for the given flags from an
+L<AnyEvent::OWNet::Response> flags attribute.
+
+=head2 C<ownet_display_format( $flags )>
+
+Returns the display format from the given flags of an
+L<AnyEvent::OWNet::Response> flags attribute.
+
+=head1 AUTHOR
+
+Mark Hindess <soft-cpan@temporalanomaly.com>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2011 by Mark Hindess.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
+=cut
+

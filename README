@@ -1,0 +1,162 @@
+NAME
+    AnyEvent::OWNet - Client for 1-wire File System server
+
+VERSION
+    version 1.111950
+
+SYNOPSIS
+      # IMPORTANT: the API is subject to change
+
+      my $ow = AnyEvent::OWNet->new(host => '127.0.0.1',
+                                    on_error => sub { warn @_ });
+
+      # Read temperature sensor
+      $ow->read('/10.123456789012/temperature', sub { my ($res) = @_; ... });
+
+      # List all devices
+      my $cv;
+      $cv = $ow->devices(sub {
+                           my $dev = shift;
+                           print $dev, "\n";
+                         });
+      $cv->recv;
+
+      # Read the temperatures of all devices that are found
+      $cv = $ow->devices(sub {
+                           my $dev = shift;
+                           $cv->begin;
+                           $ow->get($dev.'temperature',
+                                    sub {
+                                      my $res = shift;
+                                      $cv->end;
+                                      my $value = $res->{data};
+                                      return unless (defined $value);
+                                      print $dev, ' = ', 0+$value, "\n";
+                                    });
+                         });
+      $cv->recv;
+
+      # short version of the above
+      $cv = $ow->device_files(sub {
+                                my ($dev, $file, $value) = @_;
+                                print $dev, ' = ', 0+$value, "\n";
+                              }, 'temperature');
+      $cv->recv;
+
+      # read humidity as well
+      $cv = $ow->device_files(sub {
+                                my ($dev, $file, $value) = @_;
+                                print $dev, $file, ' = ', 0+$value, "\n";
+                              }, ['temperature', 'humidity']);
+      $cv->recv;
+
+DESCRIPTION
+    AnyEvent module for handling communication with an owfs 1-wire server
+    daemon.
+
+METHODS
+  "new( %parameter_hash )"
+    Constructs a new AnyEvent::OWNet object. The parameter hash can contain
+    values for the following keys:
+
+    "host"
+        The host IP of the running "owserver" daemon. Default is the IPv4
+        loopback address, 127.0.0.1.
+
+    "port"
+        The TCP port of the running "owserver" daemon. Default is 4304.
+
+    "timeout"
+        The timeout in seconds to wait for responses from the server.
+        Default is 5 seconds.
+
+  "read($path, $sub)"
+    Perform an OWNet "read" operation for the given path.
+
+  "write($path, $value, $sub)"
+    Perform an OWNet "write" operation of the given value to the given path.
+
+  "dir($path, $sub)"
+    Perform an OWNet "dir" operation for the given path. The callback will
+    be called once with the list of directory entries in the data field
+    which isn't consistent with the (misguided?) low-latency intent of this
+    operation so using dirall probably makes more sense provided the server
+    supports it.
+
+  "present($path, $sub)"
+    Perform an OWNet "present" check on the given path.
+
+  "dirall($path, $sub)"
+    Perform an OWNet "dirall" operation on the given path.
+
+  "get($path, $sub)"
+    Perform an OWNet "get" operation on the given path.
+
+  "dirallslash($path, $sub)"
+    Perform an OWNet "dirall" operation on the given path.
+
+  "getslash($path, $sub)"
+    Perform an OWNet "get" operation on the given path.
+
+  "all_cv( [ $condvar ] )"
+    This method returns the AnyEvent condvar that is used to track all
+    outstanding operations. It can also be used to set the initial value but
+    this is only sensible when no operations are currently outstanding and
+    is not normally necessary.
+
+  "cleanup( @error )"
+    This method is called on error or when the closing the connection to
+    free up resources and notify any receivers of errors.
+
+  "connect( [ $command, $callback|$condvar ] )"
+    This method connects to the "owserver" daemon. It is called
+    automatically when the first command is attempted.
+
+  "devices( $callback, [ $path, [ $condvar ] ] )"
+    This method identifies all devices below the given path (or '/' if the
+    path is not given). An "AnyEvent" condvar may also be supplied that will
+    be used to track "begin" and "end" of all actions carried out during the
+    identification process. If no condvar is provided then one will be
+    created. The condvar used is returned by this method.
+
+    The supplied callback is called for each device with the path to each
+    device as the first argument and the condvar for the operation as the
+    second argument. The intention of passing the callback the condvar (that
+    if not provided is created by the initial call) is to enable the
+    callbacks that need to make further asynchronous calls to use "begin"
+    calls and "end" calls (in the async callback) on the condvar so that the
+    complete operation may be tracked. See the SYNOPSIS for an example.
+
+    This method currently assumes that the "owserver" supports the
+    "getslash" function and if this is not the case it will fail.
+
+  "device_files( $callback, $file, [ $path, [ $condvar ] ] )"
+    Visit each device using devices() and call the callback with the result
+    of successful get() calls for $file relative to each device found. If
+    $file is an array reference each array element is treated as a relative
+    file.
+
+  "anyevent_read_type()"
+    This method is used to register an AnyEvent::Handle read type to read
+    "OWNet" replies from an "owserver" daemon.
+
+TODO
+    The code assumes that the "owserver" supports persistence and does not
+    check the response flags to recognize when it does not.
+
+SEE ALSO
+    AnyEvent(3)
+
+    OWFS Website: http://owfs.org/
+
+    OWFS Protocol Document: http://owfs.org/index.php?page=owserver-protocol
+
+AUTHOR
+    Mark Hindess <soft-cpan@temporalanomaly.com>
+
+COPYRIGHT AND LICENSE
+    This software is copyright (c) 2011 by Mark Hindess.
+
+    This is free software; you can redistribute it and/or modify it under
+    the same terms as the Perl 5 programming language system itself.
+

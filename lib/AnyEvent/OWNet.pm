@@ -2,7 +2,7 @@ use strict;
 use warnings;
 package AnyEvent::OWNet;
 BEGIN {
-  $AnyEvent::OWNet::VERSION = '1.111950';
+  $AnyEvent::OWNet::VERSION = '1.112480';
 }
 
 # ABSTRACT: Client for 1-wire File System server
@@ -351,7 +351,7 @@ AnyEvent::OWNet - Client for 1-wire File System server
 
 =head1 VERSION
 
-version 1.111950
+version 1.112480
 
 =head1 SYNOPSIS
 

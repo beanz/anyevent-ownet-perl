@@ -2,7 +2,7 @@ NAME
     AnyEvent::OWNet - Client for 1-wire File System server
 
 VERSION
-    version 1.111950
+    version 1.112480
 
 SYNOPSIS
       # IMPORTANT: the API is subject to change

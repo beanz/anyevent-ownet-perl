@@ -2,7 +2,7 @@ use strict;
 use warnings;
 package AnyEvent::OWNet::Constants;
 BEGIN {
-  $AnyEvent::OWNet::Constants::VERSION = '1.111950';
+  $AnyEvent::OWNet::Constants::VERSION = '1.112480';
 }
 
 # ABSTRACT: Module to export constants for 1-wire File System daemon protocol
@@ -99,7 +99,7 @@ AnyEvent::OWNet::Constants - Module to export constants for 1-wire File System d
 
 =head1 VERSION
 
-version 1.111950
+version 1.112480
 
 =head1 SYNOPSIS
 

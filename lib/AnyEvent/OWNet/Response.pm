@@ -2,7 +2,7 @@ use strict;
 use warnings;
 package AnyEvent::OWNet::Response;
 BEGIN {
-  $AnyEvent::OWNet::Response::VERSION = '1.111950';
+  $AnyEvent::OWNet::Response::VERSION = '1.112480';
 }
 
 # ABSTRACT: Module for responses from 1-wire File System server
@@ -73,7 +73,7 @@ AnyEvent::OWNet::Response - Module for responses from 1-wire File System server
 
 =head1 VERSION
 
-version 1.111950
+version 1.112480
 
 =head1 SYNOPSIS
 
@@ -108,9 +108,9 @@ C<owserver> daemon.
 
 Returns the flags field of the response from the C<owserver> daemon.
 The L<AnyEvent::OWNet::Constants::ownet_temperature_units()|AnyEvent::OWNet::Constants/"ownet_temperature_units( $flags )">,
-L<AnyEvent::OWNet::Constants#ownet_pressure_units()|AnyEvent::OWNet::Constants/"ownet_pressure_units( $flags )">,
+L<AnyEvent::OWNet::Constants::ownet_pressure_units()|AnyEvent::OWNet::Constants/"ownet_pressure_units( $flags )">,
 and
-L<AnyEvent::OWNet::Constants#ownet_display_format()|AnyEvent::OWNet::Constants/"ownet_display_format( $flags )">
+L<AnyEvent::OWNet::Constants::ownet_display_format()|AnyEvent::OWNet::Constants/"ownet_display_format( $flags )">
 functions can be used to extract some elements from this value.
 
 =head2 C<payload_length()>

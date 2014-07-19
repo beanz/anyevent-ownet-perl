@@ -1,6 +1,6 @@
 Revision history for Perl extension AnyEvent::OWNet.
 
-1.112480  2011-09-05 20:48:26 Europe/London
+1.142000  2014-07-19 13:57:10+01:00 Europe/London
 
 1.110430  2011-02-12 10:27:04 Europe/London
     - Reduce perl version requirement to 5.8.

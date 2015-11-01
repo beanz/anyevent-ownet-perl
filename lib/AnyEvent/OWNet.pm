@@ -224,9 +224,36 @@ sub _run_cmd {
   my $self = shift;
   my $cmd  = shift;
 
+  my ($cv, $cb);
+  if (@_) {
+    $cv = pop if UNIVERSAL::isa($_[-1], 'AnyEvent::CondVar');
+    $cb = pop if ref $_[-1] eq 'CODE';
+  }
+
+  $cv ||= AnyEvent->condvar;
+
+  print STDERR "using condvar $cv\n" if DEBUG;
+
+  $cv->cb(subname 'command_cb' => sub {
+            my $cv = shift;
+            print STDERR "calling callback $cv\n" if DEBUG;
+            try {
+              my $res = $cv->recv;
+              $cb->($res);
+            } catch {
+              ($self->{on_error} || sub { die "ARGH: @_\n"; })->($_);
+            }
+          }) if $cb;
+
+
   print STDERR 'Running command, ', $cmd->{type}, "\n" if DEBUG;
-  $self->{cmd_cb} or return $self->connect($cmd, @_);
-  $self->{cmd_cb}->($cmd, @_);
+  if( $self->{handle} ){
+    $self->_command_sub($cmd, $cv);
+  } else {
+    $self->connect($cmd, $cv );
+  }
+
+  return $cv;
 }
 
 sub DESTROY { }
@@ -261,14 +288,18 @@ sub cleanup {
   my $self = shift;
   print STDERR "cleanup\n" if DEBUG;
   $self->{all_cv}->croak(@_) if ($self->{all_cv});
+  $self->{connect_cv}->croak( @_ ) if $self->{connect_cv};
+
   while (@{$self->{connect_queue}}) {
     my $queue = shift @{$self->{connect_queue}};
-    my($cv, @args) = @$queue;
+    my($cmd, $cv) = @$queue;
     $cv->croak(@_);
   }
+
   delete $self->{all_cv};
-  delete $self->{cmd_cb};
+  delete $self->{connect_cv};
   delete $self->{sock};
+  delete $self->{handle};
   $self->{on_error}->(@_) if $self->{on_error};
 }
 
@@ -280,33 +311,32 @@ when the first command is attempted.
 =cut
 
 sub connect {
-  my $self = shift;
+  my( $self, $cmd, $cv ) = @_;
 
-  my $cv;
-  if (@_) {
-    $cv = AnyEvent->condvar;
-    $cv->cb( sub { print STDERR "connect_cv done\n" } ) if DEBUG;
-    push @{$self->{connect_queue}}, [ $cv, @_ ];
-  }
+  push @{$self->{connect_queue}}, [ $cmd, $cv ]
+    if @_;
 
-  return $cv if $self->{sock};
+  # setup already ongoing
+  return $self->{connect_cv}
+    if $self->{connect_cv};
 
-  $self->{sock} =
-    tcp_connect $self->{host}, $self->{port},
+  # or start setup
+  $self->{connect_cv} = AnyEvent->condvar;
+  $self->{connect_cv}->cb( sub { print STDERR "connect_cv done\n" } ) if DEBUG;
+
+  $self->{sock} = tcp_connect $self->{host}, $self->{port},
       subname 'tcp_connect_cb' => sub {
 
     my $fh = shift
       or do {
         my $err = "Can't connect owserver: $!";
         $self->cleanup($err);
-        $cv->croak($err);
         return
       };
 
     warn "Connected\n" if DEBUG;
 
-    my $hd =
-      AnyEvent::Handle->new(
+    $self->{handle} = AnyEvent::Handle->new(
                             fh => $fh,
                             on_error => subname('on_error_cb' => sub {
                               print STDERR "handle error $_[2]\n" if DEBUG;
@@ -326,41 +356,33 @@ sub connect {
                               $self->cleanup('Socket timeout');
                             })
                            );
-    $self->{cmd_cb} = subname 'command_sub' => sub {
-      $self->all_cv->begin;
-      my $command = shift;
+    while (@{$self->{connect_queue}}) {
+      my $queue = shift @{$self->{connect_queue}};
+      $self->_command_sub(@$queue );
+    }
+    $self->{connect_cv}->send(1);
+    delete $self->{connect_cv};
+  };
 
-      my ($cv, $cb);
-      if (@_) {
-        $cv = pop if UNIVERSAL::isa($_[-1], 'AnyEvent::CondVar');
-        $cb = pop if ref $_[-1] eq 'CODE';
-      }
+  return $self->{connect_cv};
+}
 
-      my $msg = $self->_msg($command);
-      print STDERR "sending command ", $command->{type}, "\n" if DEBUG;
-      warn 'Sending: ', (unpack 'H*', $msg), "\n" if DEBUG;
 
-      $hd->push_write($msg);
-      $hd->timeout($self->{timeout});
+sub _command_sub {
+  my( $self, $command, $cv ) = @_;
 
-      $cv ||= AnyEvent->condvar;
+  $self->all_cv->begin;
 
-      print STDERR "using condvar $cv\n" if DEBUG;
+  my $msg = $self->_msg($command);
+  print STDERR "sending command ", $command->{type}, "\n" if DEBUG;
+  warn 'Sending: ', (unpack 'H*', $msg), "\n" if DEBUG;
 
-      $cv->cb(subname 'command_cb' => sub {
-                my $cv = shift;
-                print STDERR "calling callback $cv\n" if DEBUG;
-                try {
-                  my $res = $cv->recv;
-                  $cb->($res);
-                } catch {
-                  ($self->{on_error} || sub { die "ARGH: @_\n"; })->($_);
-                }
-              }) if $cb;
+  $self->{handle}->push_write($msg);
+  $self->{handle}->timeout($self->{timeout});
 
-      $hd->push_read(ref $self, $command => subname 'push_read_cb' => sub {
+  $self->{handle}->push_read(ref $self, $command => subname 'push_read_cb' => sub {
                        my($handle, $res, $err) = @_;
-                       $hd->timeout(0);
+                       $handle->timeout(0);
                        print STDERR "read finished $cv\n" if DEBUG;
                        print STDERR "read ",
                          ($cv->ready ? "ready" : "not ready"), "\n" if DEBUG;
@@ -372,16 +394,6 @@ sub connect {
                        print STDERR "Sending $res\n" if DEBUG;
                        $cv->send($res);
                      });
-      return $cv;
-    };
-
-    while (@{$self->{connect_queue}}) {
-      my $queue = shift @{$self->{connect_queue}};
-      my($cv, @args) = @$queue;
-      $self->{cmd_cb}->(@args, $cv);
-    }
-#    $cv->send(1);
-  };
 
   return $cv;
 }

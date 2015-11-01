@@ -245,6 +245,7 @@ sub all_cv {
   $self->{all_cv} = shift if @_;
   unless ($self->{all_cv}) {
     $self->{all_cv} = AnyEvent->condvar;
+    $self->{all_cv}->cb( sub { print STDERR "all_cv done\n" } ) if DEBUG;
   }
   $self->{all_cv};
 }
@@ -284,6 +285,7 @@ sub connect {
   my $cv;
   if (@_) {
     $cv = AnyEvent->condvar;
+    $cv->cb( sub { print STDERR "connect_cv done\n" } ) if DEBUG;
     push @{$self->{connect_queue}}, [ $cv, @_ ];
   }
 

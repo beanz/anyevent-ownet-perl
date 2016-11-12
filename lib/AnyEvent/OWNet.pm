@@ -423,7 +423,7 @@ sub devices {
                           $self->devices($cb, $d, $cv);
                         }
                       }
-                    } # TOFIX: propogate error?
+                    } # TOFIX: propagate error?
                     $cv->end;
                   });
   $cv;

@@ -542,6 +542,4 @@ not check the response flags to recognize when it does not.
 
 AnyEvent(3)
 
-OWFS Website: http://owfs.org/
-
-OWFS Protocol Document: http://owfs.org/index.php?page=owserver-protocol
+OWFS Website: https://github.com/owfs/owfs

@@ -1,6 +1,7 @@
 Revision history for Perl extension AnyEvent::OWNet.
 
 {{$NEXT}}
+    - Fix out of date URLs for owfs project
 
 1.163170  2016-11-12 15:05:04+00:00 Europe/London
     - Fix connect callback. Thanks to @rclasen
